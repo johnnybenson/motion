@@ -1,4 +1,4 @@
-import { EventInfo, Point } from "../events/types"
+import { EventInfo } from "../events/types"
 import { isTouchEvent, isMouseEvent } from "./utils/event-type"
 import { extractEventInfo } from "../events/event-info"
 import sync, { getFrameData, cancelSync } from "framesync"
@@ -6,7 +6,7 @@ import { secondsToMilliseconds } from "../utils/time-conversion"
 import { addPointerEvent } from "../events/use-pointer-event"
 import { unblockViewportScroll } from "../gestures/drag/utils/block-viewport-scroll"
 import { distance } from "popmotion"
-import { TransformPoint2D } from "../types/geometry"
+import { Point2D, TransformPoint2D } from "../types/geometry"
 
 export type AnyPointerEvent = MouseEvent | TouchEvent | PointerEvent
 
@@ -62,7 +62,7 @@ export interface PanInfo {
      *
      * @public
      */
-    point: Point
+    point: Point2D
     /**
      * Contains `x` and `y` values for the distance moved since
      * the last event.
@@ -89,7 +89,7 @@ export interface PanInfo {
      *
      * @public
      */
-    delta: Point
+    delta: Point2D
     /**
      * Contains `x` and `y` values for the distance moved from
      * the first pan event.
@@ -116,7 +116,7 @@ export interface PanInfo {
      *
      * @public
      */
-    offset: Point
+    offset: Point2D
     /**
      * Contains `x` and `y` values for the current velocity of the pointer.
      *
@@ -142,7 +142,7 @@ export interface PanInfo {
      *
      * @public
      */
-    velocity: Point
+    velocity: Point2D
 }
 
 export type PanHandler = (event: Event, info: PanInfo) => void
@@ -157,7 +157,7 @@ interface PanSessionOptions {
     transformPagePoint?: TransformPoint2D
 }
 
-interface TimestampedPoint extends Point {
+interface TimestampedPoint extends Point2D {
     timestamp: number
 }
 
@@ -308,16 +308,20 @@ export class PanSession {
 
 function transformPoint(
     info: EventInfo,
-    transformPagePoint?: (point: Point) => Point
+    transformPagePoint?: (point: Point2D) => Point2D
 ) {
     return transformPagePoint ? { point: transformPagePoint(info.point) } : info
+}
+
+function subtractPoint(a: Point2D, b: Point2D): Point2D {
+    return { x: a.x - b.x, y: a.y - b.y }
 }
 
 function getPanInfo({ point }: EventInfo, history: TimestampedPoint[]) {
     return {
         point,
-        delta: Point.subtract(point, lastDevicePoint(history)),
-        offset: Point.subtract(point, startDevicePoint(history)),
+        delta: subtractPoint(point, lastDevicePoint(history)),
+        offset: subtractPoint(point, startDevicePoint(history)),
         velocity: getVelocity(history, 0.1),
     }
 }
@@ -330,7 +334,7 @@ function lastDevicePoint(history: TimestampedPoint[]): TimestampedPoint {
     return history[history.length - 1]
 }
 
-function getVelocity(history: TimestampedPoint[], timeDelta: number): Point {
+function getVelocity(history: TimestampedPoint[], timeDelta: number): Point2D {
     if (history.length < 2) {
         return { x: 0, y: 0 }
     }
